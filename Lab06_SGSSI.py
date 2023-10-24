@@ -1,5 +1,6 @@
 import hashlib
 import os
+import random
 
 def calcular_prefijo_ceros(sha256):
     count = 0
@@ -54,6 +55,27 @@ def obtener_ficheros_aptos(fichero_entrada, directorio):
 
     return ficheros_cumplen, fichero_max_ceros
 
+def obtener_ficheros_aptos_con_ponderacion(fichero_entrada, directorio):
+    
+    ficheros_cumplen = []
+    #Se itera sobre cada uno de los archivos dentro del directorio para comprobar si son candidatos aptos.
+    for archivo in os.listdir(directorio):
+        if archivo.endswith(".txt"):
+            estudiante_id = archivo.split(".")[3]
+            prefijo_ceros = comprobar_condicionesV2(fichero_entrada, os.path.join(directorio, archivo), estudiante_id)
+
+            if prefijo_ceros >= 0:
+                ficheros_cumplen.append((archivo, prefijo_ceros))
+    
+     # Calcular las probabilidades de elección en función de la carga de trabajo
+    probabilidades = [1 / (1 + fichero[1]) for fichero in ficheros_cumplen]
+
+    # Realizar el sorteo basado en las probabilidades
+    fichero_seleccionado = random.choices(ficheros_cumplen, weights=probabilidades)[0][0]
+    ficheros_cumplen.sort(key=lambda x: (-x[1], x[0]))
+
+    return ficheros_cumplen, fichero_seleccionado
+
 
 #CODIGO DE EXPERIMENTACION
 
@@ -61,9 +83,16 @@ fichero_entrada = "SGSSI-23.CB.03.txt"
 directorio = "SGSSI-23.S.6.2.CB.03.Candidatos"
 ficheros_cumplen, fichero_max_ceros = obtener_ficheros_aptos(fichero_entrada, directorio)
 
+ficheros_cumplenV2, fichero_seleccionado = obtener_ficheros_aptos_con_ponderacion(fichero_entrada, directorio)
+
 print("La relación de ficheros que cumplen las condiciones en el directorio:")
 for archivo, prefijo_ceros in ficheros_cumplen:
     print(f"- {archivo} (Prefijo de 0's en SHA-256: {prefijo_ceros})")
 
 if fichero_max_ceros:
     print(f"El fichero con la secuencia de 0's más larga en el resumen SHA-256 es '{fichero_max_ceros}'.")
+
+if fichero_seleccionado:
+    print(f"Fichero seleccionado: {fichero_seleccionado}")
+else:
+    print("No se encontraron archivos que cumplan las condiciones.")
